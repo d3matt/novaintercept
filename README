@@ -1,0 +1,5 @@
+novaintercept is a dns server based on dnslib that use python-novaclient to query hostnames
+
+Requirements:
+    dnslib
+    python-novaclient

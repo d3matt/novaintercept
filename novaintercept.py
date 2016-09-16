@@ -38,7 +38,7 @@ class NovaResolver(InterceptResolver):
         qname = str(qname).split('.')
         if qname[-1] == '':
             qname.pop(-1)
-        if qname[-1] == 'novalocal' and qtype == 'A':
+        if qname[-1] == 'novalocal' and qtype in ['A', 'AAAA', 'MX']:
             servername = qname[-2]
             if len(qname) == 2:
                 query = 'fixed'
@@ -58,7 +58,7 @@ class NovaResolver(InterceptResolver):
                 if server.name == servername:
                     for interface in server.addresses.values():
                         for ip in interface:
-                            if ip['OS-EXT-IPS:type'] == query:
+                            if ip['OS-EXT-IPS:type'] == query and qtype == 'A':
                                 ans = RR.fromZone('{} 60 IN A {}'.format(request.q.qname, ip['addr']))[0]
                                 print(ans)
                                 ans.rname = request.q.qname

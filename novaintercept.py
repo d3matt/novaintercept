@@ -13,6 +13,7 @@ import os
 import socket
 import struct
 import sys
+import time
 
 from dnslib import DNSRecord,RR,QTYPE,RCODE,parse_time
 from dnslib.server import DNSServer,DNSHandler,BaseResolver,DNSLogger
@@ -28,6 +29,24 @@ def get_nova_creds():
     d['auth_url'] = os.environ['OS_AUTH_URL']
     d['project_id'] = os.environ['OS_TENANT_NAME']
     return d
+
+class CachedNovaLookup(object):
+    _cache = None
+    _cache_time = None
+
+    @classmethod
+    def _do_lookup(cls):
+        creds = get_nova_creds()
+        nova = novaclient('2', **creds)
+        print('performing nova lookup')
+        cls._cache = nova.servers.list()
+        cls._cache_time = time.time()
+
+    @classmethod
+    def get_list(cls, timeout=60):
+        if cls._cache is None or abs(cls._cache_time - time.time()) > 60:
+            cls._do_lookup()
+        return cls._cache
 
 class NovaResolver(InterceptResolver):
 
@@ -51,10 +70,7 @@ class NovaResolver(InterceptResolver):
 
             print(qname)
             reply = request.reply()
-            creds = get_nova_creds()
-            nova = novaclient('2', **creds)
-            servers = nova.servers.list()
-            for server in servers:
+            for server in CachedNovaLookup.get_list():
                 if server.name == servername:
                     for interface in server.addresses.values():
                         for ip in interface:

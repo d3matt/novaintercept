@@ -58,6 +58,7 @@ class NovaResolver(InterceptResolver):
         if qname[-1] == '':
             qname.pop(-1)
         if qname[-1] == 'novalocal' and qtype in ['A', 'AAAA', 'MX']:
+            reply = request.reply()
             servername = qname[-2]
             if len(qname) == 2:
                 query = 'fixed'
@@ -69,7 +70,6 @@ class NovaResolver(InterceptResolver):
                 return reply
 
             print(qname)
-            reply = request.reply()
             for server in CachedNovaLookup.get_list():
                 if server.name == servername:
                     for interface in server.addresses.values():

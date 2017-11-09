@@ -19,16 +19,17 @@ from dnslib import DNSRecord,RR,QTYPE,RCODE,parse_time
 from dnslib.server import DNSServer,DNSHandler,BaseResolver,DNSLogger
 from dnslib.label import DNSLabel
 from dnslib.intercept import InterceptResolver
-from novaclient.client import Client as novaclient
+from novaclient import client
 
+from keystoneauth1 import loading
+from keystoneauth1 import session
+from novaclient import client
 
-def get_nova_creds():
-    d = {}
-    d['username'] = os.environ['OS_USERNAME']
-    d['api_key'] = os.environ['OS_PASSWORD']
-    d['auth_url'] = os.environ['OS_AUTH_URL']
-    d['project_id'] = os.environ['OS_TENANT_NAME']
-    return d
+AUTH_URL = os.environ['OS_AUTH_URL']
+DOMAIN = os.environ['OS_USER_DOMAIN_NAME']
+PASSWORD = os.environ['OS_PASSWORD']
+PROJECT_ID = os.environ['OS_PROJECT_ID']
+USERNAME = os.environ['OS_USERNAME']
 
 class CachedNovaLookup(object):
     _cache = None
@@ -36,8 +37,14 @@ class CachedNovaLookup(object):
 
     @classmethod
     def _do_lookup(cls):
-        creds = get_nova_creds()
-        nova = novaclient('2', **creds)
+        loader = loading.get_plugin_loader('password')
+        auth = auth = loader.load_from_options(auth_url=AUTH_URL,
+                                               username=USERNAME,
+                                               password=PASSWORD,
+                                               project_id=PROJECT_ID,
+                                               user_domain_name=DOMAIN)
+        sess = session.Session(auth=auth)
+        nova = client.Client('2', session=sess)
         print('performing nova lookup')
         cls._cache = nova.servers.list()
         cls._cache_time = time.time()
